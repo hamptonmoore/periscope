@@ -1,0 +1,9 @@
+name: Periscope API
+version: 0.0.1
+authors:
+  - Hampton Moore <me@hamptonmoore.com>
+license: MIT
+
+dependencies:
+  router:
+    github: tbrand/router.cr
