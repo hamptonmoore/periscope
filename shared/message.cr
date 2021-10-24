@@ -2,6 +2,7 @@ enum MessageType
     Introduction
     Command
     Reply
+    KeepAlive
 end
 
 class Message 

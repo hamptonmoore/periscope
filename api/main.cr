@@ -2,14 +2,21 @@ require "socket"
 require "json"
 require "router"
 require "../shared/message.cr"
-require "./http.cr"
 require "log"
 
-PORT = 1234
-HOST = "0.0.0.0"
+class Config
+    include JSON::Serializable
+    getter http_port
+    getter http_host
+    getter tcp_port
+    getter tcp_host
 
-test_message = Message.new(1, MessageType::Introduction, IntroductionMessage.new("bos01.hammy.network", "Boston, USA", [Action.new("test", "Hello world", "Hello world action", %w(Host, IPAddress))]).to_json)
-puts test_message.to_json
+    def initialize(@http_port : Int32, @http_host : String, @tcp_port : Int32, @tcp_host : String)
+        
+    end 
+end
+
+config = Config.new(3000, "0.0.0.0", 1234, "0.0.0.0") 
 
 struct Host 
     include JSON::Serializable
@@ -25,7 +32,10 @@ def handle_client(client)
     host = nil 
     while message = client.gets
         msg = Message.from_json(message)
-        puts "[#{client}] #{msg.id}"
+        puts "[#{client}] #{msg.type} #{msg.contents}"
+        if msg.type == MessageType::KeepAlive
+            client.puts Message.new(msg.id, MessageType::KeepAlive, "").to_json
+        end
         if msg.type == MessageType::Introduction  
             intro = IntroductionMessage.from_json(msg.contents)
             puts "Host #{intro.hostname} has connected"
@@ -38,14 +48,15 @@ class WebServer
     include Router
   
     getter port
+    getter host
 
-    def initialize(@port : Int32)
+    def initialize(@host : String, @port : Int32)
         
     end
     
     def draw_routes
         get "/" do |context, params|
-            context.response.print "Hello router.cr!"
+            context.response.print "Hello from Periscope!"
             context
         end
         get "/list-hosts" do |context, params|
@@ -56,21 +67,21 @@ class WebServer
     
     def run
         server = HTTP::Server.new(route_handler)
-        server.bind_tcp port
+        server.bind_tcp host, port
         Log.info {"Starting Periscope HTTP API on port #{port}"}
         server.listen
     end
 end
 spawn do
-    server = TCPServer.new(HOST, PORT)
-    Log.info {"Starting Periscope TCP server on port #{PORT}"}
+    server = TCPServer.new(config.tcp_host, config.tcp_port)
+    Log.info {"Starting Periscope TCP server on port #{config.tcp_port}"}
     while client = server.accept?
         spawn handle_client(client)
     end
 end
 
 spawn do
-    web_server = WebServer.new(3000) 
+    web_server = WebServer.new(config.http_host, config.http_port) 
     web_server.draw_routes
     web_server.run
 end
