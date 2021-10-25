@@ -1,7 +1,7 @@
 enum MessageType
     Introduction
-    Command
-    Reply
+    Action 
+    ActionReply
     KeepAlive
 end
 
@@ -20,6 +20,23 @@ class IntroductionMessage
     getter location
     getter actions
     def initialize(@hostname : String, @location : String, @actions : Array(Action))
+        
+    end
+end
+
+class ActionMessage
+    include JSON::Serializable
+    getter action
+    getter arguments
+    def initialize(@action : String, @arguments : Array(String))
+
+    end
+end
+
+class ActionReplyMessage
+    include JSON::Serializable
+
+    def initialize(@reply : String)
         
     end
 end
